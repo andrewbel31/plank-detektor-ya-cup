@@ -3,7 +3,10 @@ package com.andreibelous.plankdetektor.ml
 import android.content.Context
 import android.graphics.*
 import android.os.SystemClock
-import com.andreibelous.plankdetektor.data.data.*
+import com.andreibelous.plankdetektor.data.BodyPart
+import com.andreibelous.plankdetektor.data.KeyPoint
+import com.andreibelous.plankdetektor.data.Person
+import com.andreibelous.plankdetektor.data.TorsoAndBodyDistance
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.GpuDelegate
@@ -20,38 +23,7 @@ import kotlin.math.min
 class MoveNet(
     private val interpreter: Interpreter,
     private var gpuDelegate: GpuDelegate?
-) :
-    PoseDetector {
-
-    companion object {
-        private const val MIN_CROP_KEYPOINT_SCORE = .2f
-        private const val CPU_NUM_THREADS = 4
-
-        // Parameters that control how large crop region should be expanded from previous frames'
-        // body keypoints.
-        private const val TORSO_EXPANSION_RATIO = 1.9f
-        private const val BODY_EXPANSION_RATIO = 1.2f
-
-        // TFLite file names.
-        private const val THUNDER_FILENAME = "movenet_thunder.tflite"
-
-        // allow specifying model type.
-        fun create(context: Context): MoveNet {
-            val options = Interpreter.Options()
-            val gpuDelegate=  GpuDelegate()
-            options.setNumThreads(CPU_NUM_THREADS)
-            options.addDelegate(gpuDelegate)
-            return MoveNet(
-                Interpreter(
-                    FileUtil.loadMappedFile(
-                        context,
-                        THUNDER_FILENAME
-                    ), options
-                ),
-                gpuDelegate
-            )
-        }
-    }
+) : PoseDetector {
 
     private var cropRegion: RectF? = null
     private var lastInferenceTimeNanos: Long = -1
@@ -70,17 +42,20 @@ class MoveNet(
         val keyPoints = mutableListOf<KeyPoint>()
 
         cropRegion?.run {
+
             val rect = RectF(
                 (left * bitmap.width),
                 (top * bitmap.height),
                 (right * bitmap.width),
                 (bottom * bitmap.height)
             )
+
             val detectBitmap = Bitmap.createBitmap(
                 rect.width().toInt(),
                 rect.height().toInt(),
                 Bitmap.Config.ARGB_8888
             )
+
             Canvas(detectBitmap).drawBitmap(
                 bitmap,
                 -rect.left,
@@ -104,16 +79,7 @@ class MoveNet(
                     positions.add(x)
                     positions.add(y)
                     val score = output[idx * 3 + 2]
-                    keyPoints.add(
-                        KeyPoint(
-                            BodyPart.fromInt(idx),
-                            PointF(
-                                x,
-                                y
-                            ),
-                            score
-                        )
-                    )
+                    keyPoints.add(KeyPoint(BodyPart.fromInt(idx), PointF(x, y), score))
                     totalScore += score
                 }
             }
@@ -320,5 +286,32 @@ class MoveNet(
             maxBodyYRange,
             maxBodyXRange
         )
+    }
+
+    companion object {
+
+        private const val MIN_CROP_KEYPOINT_SCORE = .2f
+        private const val CPU_NUM_THREADS = 4
+        private const val TORSO_EXPANSION_RATIO = 1.9f
+        private const val BODY_EXPANSION_RATIO = 1.2f
+        private const val THUNDER_FILENAME = "movenet_thunder.tflite"
+
+        // allow specifying model type.
+        fun create(context: Context): MoveNet {
+            val gpuDelegate = GpuDelegate()
+            val options = Interpreter.Options().apply {
+                setNumThreads(CPU_NUM_THREADS)
+                addDelegate(gpuDelegate)
+            }
+            return MoveNet(
+                Interpreter(
+                    FileUtil.loadMappedFile(
+                        context,
+                        THUNDER_FILENAME
+                    ), options
+                ),
+                gpuDelegate
+            )
+        }
     }
 }

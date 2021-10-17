@@ -1,4 +1,4 @@
-package com.andreibelous.plankdetektor
+package com.andreibelous.plankdetektor.ml
 
 import android.content.Context
 import android.graphics.Bitmap

@@ -1,4 +1,4 @@
-package com.andreibelous.plankdetektor.data.data
+package com.andreibelous.plankdetektor.data
 
 enum class BodyPart(val position: Int) {
     NOSE(0),

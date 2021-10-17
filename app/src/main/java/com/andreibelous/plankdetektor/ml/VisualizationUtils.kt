@@ -1,11 +1,11 @@
-package com.andreibelous.plankdetektor
+package com.andreibelous.plankdetektor.ml
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import com.andreibelous.plankdetektor.data.data.BodyPart
-import com.andreibelous.plankdetektor.data.data.Person
+import com.andreibelous.plankdetektor.data.BodyPart
+import com.andreibelous.plankdetektor.data.Person
 
 object VisualizationUtils {
     /** Pair of keypoints to draw lines between.  */

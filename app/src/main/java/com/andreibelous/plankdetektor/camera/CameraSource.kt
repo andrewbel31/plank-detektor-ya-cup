@@ -17,11 +17,12 @@ import android.util.Log
 import android.view.Surface
 import android.view.SurfaceView
 import androidx.lifecycle.LifecycleCoroutineScope
-import com.andreibelous.plankdetektor.VisualizationUtils
-import com.andreibelous.plankdetektor.YuvToRgbConverter
-import com.andreibelous.plankdetektor.data.data.Person
-import com.andreibelous.plankdetektor.data.data.isInPlank
+import com.andreibelous.plankdetektor.PlankDataSource
+import com.andreibelous.plankdetektor.data.Person
+import com.andreibelous.plankdetektor.data.isInPlank
 import com.andreibelous.plankdetektor.ml.PoseDetector
+import com.andreibelous.plankdetektor.ml.VisualizationUtils
+import com.andreibelous.plankdetektor.ml.YuvToRgbConverter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -180,7 +181,7 @@ class CameraSource(
         person?.let {
             visualize(it, bitmap)
             lifecycleScope.launch(Dispatchers.Main) {
-                val isPlank =
+                PlankDataSource.isPlank =
                     withContext(Dispatchers.IO) {
                         it.isInPlank()
                     }

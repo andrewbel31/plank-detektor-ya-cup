@@ -14,9 +14,10 @@ limitations under the License.
 ==============================================================================
 */
 
-package com.andreibelous.plankdetektor.data.data
+package com.andreibelous.plankdetektor.data
 
 import android.graphics.PointF
+import com.andreibelous.plankdetektor.data.BodyPart
 
 data class KeyPoint(
     val bodyPart: BodyPart,

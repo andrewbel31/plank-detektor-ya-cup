@@ -17,7 +17,7 @@ limitations under the License.
 package com.andreibelous.plankdetektor.ml
 
 import android.graphics.Bitmap
-import com.andreibelous.plankdetektor.data.data.Person
+import com.andreibelous.plankdetektor.data.Person
 
 interface PoseDetector : AutoCloseable {
 
