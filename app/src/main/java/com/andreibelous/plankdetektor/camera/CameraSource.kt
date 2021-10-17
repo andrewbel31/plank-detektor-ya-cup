@@ -21,18 +21,15 @@ import com.andreibelous.plankdetektor.VisualizationUtils
 import com.andreibelous.plankdetektor.YuvToRgbConverter
 import com.andreibelous.plankdetektor.data.data.Person
 import com.andreibelous.plankdetektor.data.data.isInPlank
-import com.andreibelous.plankdetektor.ml.PoseClassifier
 import com.andreibelous.plankdetektor.ml.PoseDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import java.util.*
 import kotlin.coroutines.resumeWithException
 
 class CameraSource(
     private val surfaceView: SurfaceView,
-    private val listener: CameraSourceListener? = null,
     private val lifecycleScope: LifecycleCoroutineScope
 ) {
 
@@ -47,34 +44,18 @@ class CameraSource(
 
     private val lock = Any()
     private var detector: PoseDetector? = null
-    private var classifier: PoseClassifier? = null
     private var yuvConverter: YuvToRgbConverter = YuvToRgbConverter(surfaceView.context)
     private lateinit var imageBitmap: Bitmap
 
-    /** Frame count that have been processed so far in an one second interval to calculate FPS. */
-    private var fpsTimer: Timer? = null
-    private var frameProcessedInOneSecondInterval = 0
-    private var framesPerSecond = 0
-
-    /** Detects, characterizes, and connects to a CameraDevice (used for all camera operations) */
     private val cameraManager: CameraManager by lazy {
         val context = surfaceView.context
         context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
 
-    /** Readers used as buffers for camera still shots */
     private var imageReader: ImageReader? = null
-
-    /** The [CameraDevice] that will be opened in this fragment */
     private var camera: CameraDevice? = null
-
-    /** Internal reference to the ongoing [CameraCaptureSession] configured with our parameters */
     private var session: CameraCaptureSession? = null
-
-    /** [HandlerThread] where all buffer reading operations run */
     private var imageReaderThread: HandlerThread? = null
-
-    /** [Handler] corresponding to [imageReaderThread] */
     private var imageReaderHandler: Handler? = null
     private var cameraId: String = ""
 
@@ -153,7 +134,7 @@ class CameraSource(
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
 
             val cameraDirection = characteristics.get(CameraCharacteristics.LENS_FACING)
-            if (cameraDirection != null && cameraDirection == CameraCharacteristics.LENS_FACING_FRONT) {
+            if (cameraDirection != null && cameraDirection != CameraCharacteristics.LENS_FACING_FRONT) {
                 continue
             }
             this.cameraId = cameraId
@@ -170,30 +151,9 @@ class CameraSource(
         }
     }
 
-    fun setClassifier(classifier: PoseClassifier?) {
-        synchronized(lock) {
-            if (this.classifier != null) {
-                this.classifier?.close()
-                this.classifier = null
-            }
-            this.classifier = classifier
-        }
-    }
-
     fun resume() {
         imageReaderThread = HandlerThread("imageReaderThread").apply { start() }
         imageReaderHandler = Handler(imageReaderThread!!.looper)
-        fpsTimer = Timer()
-        fpsTimer?.scheduleAtFixedRate(
-            object : TimerTask() {
-                override fun run() {
-                    framesPerSecond = frameProcessedInOneSecondInterval
-                    frameProcessedInOneSecondInterval = 0
-                }
-            },
-            0,
-            1000
-        )
     }
 
     fun close() {
@@ -206,33 +166,17 @@ class CameraSource(
         stopImageReaderThread()
         detector?.close()
         detector = null
-        classifier?.close()
-        classifier = null
-        fpsTimer?.cancel()
-        fpsTimer = null
-        frameProcessedInOneSecondInterval = 0
-        framesPerSecond = 0
     }
 
     // process image
     private fun processImage(bitmap: Bitmap) {
         var person: Person? = null
-        var classificationResult: List<Pair<String, Float>>? = null
 
         synchronized(lock) {
             detector?.estimateSinglePose(bitmap)?.let {
                 person = it
-                classifier?.run {
-                    classificationResult = classify(person)
-                }
             }
         }
-        frameProcessedInOneSecondInterval++
-        if (frameProcessedInOneSecondInterval == 1) {
-            // send fps to view
-            listener?.onFPSListener(framesPerSecond)
-        }
-        listener?.onDetectedInfo(person?.score, classificationResult)
         person?.let {
             visualize(it, bitmap)
             lifecycleScope.launch(Dispatchers.Main) {
@@ -245,11 +189,12 @@ class CameraSource(
     }
 
     private fun visualize(person: Person, bitmap: Bitmap) {
-        var outputBitmap = bitmap
-
-        if (person.score > MIN_CONFIDENCE) {
-            outputBitmap = VisualizationUtils.drawBodyKeypoints(bitmap, person)
-        }
+        val outputBitmap =
+            if (person.score > MIN_CONFIDENCE) {
+                VisualizationUtils.drawBodyKeypoints(bitmap, person)
+            } else {
+                bitmap
+            }
 
         val holder = surfaceView.holder
         val surfaceCanvas = holder.lockCanvas()
@@ -260,7 +205,7 @@ class CameraSource(
             val top: Int
 
             if (canvas.height > canvas.width) {
-                val ratio = outputBitmap.height.toFloat() / outputBitmap.width
+                val ratio = outputBitmap.height.toFloat() / outputBitmap.width.toFloat()
                 screenWidth = canvas.width
                 left = 0
                 screenHeight = (canvas.width * ratio).toInt()
@@ -275,10 +220,15 @@ class CameraSource(
             val right: Int = left + screenWidth
             val bottom: Int = top + screenHeight
 
+            canvas.save()
+            canvas.scale(1f, -1f, canvas.width / 2f, canvas.height / 2f)
             canvas.drawBitmap(
-                outputBitmap, Rect(0, 0, outputBitmap.width, outputBitmap.height),
-                Rect(left, top, right, bottom), null
+                outputBitmap,
+                Rect(0, 0, outputBitmap.width, outputBitmap.height),
+                Rect(left, top, right, bottom),
+                null
             )
+            canvas.restore()
             surfaceView.holder.unlockCanvasAndPost(canvas)
         }
     }
@@ -292,11 +242,5 @@ class CameraSource(
         } catch (e: InterruptedException) {
             Log.d(TAG, e.message.toString())
         }
-    }
-
-    interface CameraSourceListener {
-        fun onFPSListener(fps: Int)
-
-        fun onDetectedInfo(personScore: Float?, poseLabels: List<Pair<String, Float>>?)
     }
 }

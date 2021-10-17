@@ -17,6 +17,9 @@ limitations under the License.
 package com.andreibelous.plankdetektor.data.data
 
 import android.graphics.PointF
-import com.andreibelous.plankdetektor.data.data.BodyPart
 
-data class KeyPoint(val bodyPart: BodyPart, var coordinate: PointF, val score: Float)
+data class KeyPoint(
+    val bodyPart: BodyPart,
+    var coordinate: PointF,
+    val score: Float
+)

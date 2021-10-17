@@ -31,7 +31,6 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.andreibelous.plankdetektor.camera.CameraSource
 import com.andreibelous.plankdetektor.ml.MoveNet
-import com.andreibelous.plankdetektor.ml.PoseClassifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -44,7 +43,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var surfaceView: SurfaceView
 
     private var cameraSource: CameraSource? = null
-    private var isClassifyPose = false
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -85,38 +83,20 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
     }
 
-    // check if permission is granted or not.
-    private fun isCameraPermissionGranted(): Boolean {
-        return checkPermission(
+    private fun isCameraPermissionGranted(): Boolean =
+        checkPermission(
             Manifest.permission.CAMERA,
             Process.myPid(),
             Process.myUid()
         ) == PackageManager.PERMISSION_GRANTED
-    }
 
-    // open camera
     private fun openCamera() {
         if (isCameraPermissionGranted()) {
             if (cameraSource == null) {
                 cameraSource =
-                    CameraSource(
-                        surfaceView,
-                        object : CameraSource.CameraSourceListener {
-                            override fun onFPSListener(fps: Int) {
-                            }
-
-                            override fun onDetectedInfo(
-                                personScore: Float?,
-                                poseLabels: List<Pair<String, Float>>?
-                            ) {
-                            }
-
-                        },
-                        lifecycleScope
-                    ).apply {
+                    CameraSource(surfaceView, lifecycleScope).apply {
                         prepareCamera()
                     }
-                isPoseClassifier()
                 lifecycleScope.launch(Dispatchers.Main) {
                     cameraSource?.initCamera()
                 }
@@ -124,11 +104,6 @@ class MainActivity : AppCompatActivity() {
             createPoseEstimator()
         }
     }
-
-    private fun isPoseClassifier() {
-        cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
-    }
-
 
     private fun createPoseEstimator() =
         MoveNet.create(this).also { cameraSource?.setDetector(it) }

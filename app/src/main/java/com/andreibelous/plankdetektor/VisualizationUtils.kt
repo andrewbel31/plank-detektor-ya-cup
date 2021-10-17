@@ -8,12 +8,6 @@ import com.andreibelous.plankdetektor.data.data.BodyPart
 import com.andreibelous.plankdetektor.data.data.Person
 
 object VisualizationUtils {
-    /** Radius of circle used to draw keypoints.  */
-    private const val CIRCLE_RADIUS = 6f
-
-    /** Width of line used to connected two keypoints.  */
-    private const val LINE_WIDTH = 4f
-
     /** Pair of keypoints to draw lines between.  */
     private val bodyJoints = listOf(
         Pair(BodyPart.NOSE, BodyPart.LEFT_EYE),
@@ -38,18 +32,8 @@ object VisualizationUtils {
 
     // Draw line and point indicate body pose
     fun drawBodyKeypoints(input: Bitmap, person: Person): Bitmap {
-        val paintCircle = Paint().apply {
-            strokeWidth = CIRCLE_RADIUS
-            color = Color.RED
-            style = Paint.Style.FILL
-        }
-        val paintLine = Paint().apply {
-            strokeWidth = LINE_WIDTH
-            color = Color.RED
-            style = Paint.Style.FILL
-        }
+        val output = input.copy(Bitmap.Config.ARGB_8888, true)
 
-        val output = input.copy(Bitmap.Config.ARGB_8888,true)
         val originalSizeCanvas = Canvas(output)
         bodyJoints.forEach {
             val pointA = person.keyPoints[it.first.position].coordinate
@@ -67,4 +51,21 @@ object VisualizationUtils {
         }
         return output
     }
+
+    private val pink = Color.parseColor("#e75480")
+    private val paintCircle =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            strokeWidth = CIRCLE_RADIUS
+            color = pink
+            style = Paint.Style.FILL
+        }
+    private val paintLine =
+        Paint().apply {
+            strokeWidth = LINE_WIDTH
+            color = pink
+            style = Paint.Style.FILL
+        }
+
+    private const val CIRCLE_RADIUS = 6f
+    private const val LINE_WIDTH = 4f
 }
