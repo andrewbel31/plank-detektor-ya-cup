@@ -39,7 +39,7 @@ class CameraSource(
         private const val PREVIEW_HEIGHT = 480
 
         /** Threshold for confidence score. */
-        private const val MIN_CONFIDENCE = .5f
+        private const val MIN_CONFIDENCE = .3f
         private const val TAG = "Camera Source"
     }
 

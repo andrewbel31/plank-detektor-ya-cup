@@ -20,8 +20,12 @@ import com.andreibelous.plankdetektor.view.results.dp
 import com.badoo.mvicore.modelWatcher
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.jakewharton.rxrelay2.PublishRelay
+import io.reactivex.Observable
 import io.reactivex.ObservableSource
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.functions.Consumer
+import java.util.concurrent.TimeUnit
 
 class MainView(
     private val root: AppCompatActivity,
@@ -34,6 +38,7 @@ class MainView(
         object ShowResultsClicked : Event
     }
 
+    private var timer: Disposable? = null
     private var dialog: AlertDialog? = null
     private val buttonResults = root.findViewById<TextView>(R.id.label_results).apply {
         val radii = context.dp(24f)
@@ -54,6 +59,9 @@ class MainView(
     }
 
     private val resultsView = root.findViewById<ResultsView>(R.id.results_view)
+    private val labelTimer = root.findViewById<TextView>(R.id.label_timer).apply {
+        setTextColor(Color.YELLOW)
+    }
     private val dimOverlay =
         root.findViewById<View>(R.id.dim_overlay)
             .apply {
@@ -96,6 +104,8 @@ class MainView(
         root.lifecycle.subscribe {
             dialog?.dismiss()
             dialog = null
+            timer?.dispose()
+            timer = null
         }
     }
 
@@ -113,11 +123,27 @@ class MainView(
     }
 
     private fun init() {
+        if (timer != null) {
+            timer?.dispose()
+            timer = null
+            labelTimer.text = ""
+            labelTimer.gone()
+        }
         hideResults()
         action.text = "Встаньте в планку"
     }
 
     private fun inProgress() {
+        if (timer == null) {
+            val start = System.currentTimeMillis()
+            timer = Observable.interval(10L, TimeUnit.MILLISECONDS, AndroidSchedulers.mainThread())
+                .subscribe {
+                    val time = System.currentTimeMillis() - start
+                    labelTimer.text = time.formatDuration()
+                }
+            labelTimer.text = ""
+            labelTimer.visible()
+        }
         hideResults()
         action.text = "Вы в планке"
     }
@@ -125,12 +151,17 @@ class MainView(
     private fun showResults(data: List<Attempt>) {
         dimOverlay.visible()
         behaviour.state = BottomSheetBehavior.STATE_EXPANDED
-        resultsView.bind(ResultsViewModel(data.map {
-            StrAttempt(
-                date = it.date.formatEndPoints(),
-                duration = (it.end - it.start).formatDuration()
-            )
-        }))
+        resultsView.bind(
+            ResultsViewModel(
+                data
+                    .reversed()
+                    .map {
+                        StrAttempt(
+                            date = it.date.formatEndPoints(),
+                            duration = "${(it.end - it.start).formatDuration()} сек."
+                        )
+                    })
+        )
     }
 
     private fun hideResults() {

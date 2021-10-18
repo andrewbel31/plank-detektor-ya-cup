@@ -53,9 +53,9 @@ inline fun <reified T> Any.cast() = this as T
 
 inline fun <reified T> Any.safeCast() = this as? T
 
-fun Long.millisToTime(): String? {
+fun Long.millisToTime(): String {
     if (this == 0L) {
-        return null
+        return ""
     }
     val minutes = this / 1000 / 60
     val seconds = this / 1000 % 60
@@ -110,8 +110,8 @@ fun Lifecycle.subscribe(
     })
 }
 
-private val sdf = SimpleDateFormat("HH:mm:ss.SS", Locale.getDefault())
-private val sdfDuration = SimpleDateFormat("ss.SS", Locale.getDefault())
+private val sdf = SimpleDateFormat("dd MMM yyyy HH:mm:ss", Locale.getDefault())
+private val sdfDuration = SimpleDateFormat("mm:ss.SS", Locale.getDefault())
 private val calendar = Calendar.getInstance()
 
 fun Long.formatEndPoints(): String {

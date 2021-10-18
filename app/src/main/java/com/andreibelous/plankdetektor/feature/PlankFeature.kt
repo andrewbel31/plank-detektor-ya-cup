@@ -83,7 +83,6 @@ class PlankFeature(
         private fun executeWish(wish: Wish): Observable<Effect> =
             when (wish) {
                 is Wish.ShowResults -> loadResults()
-
             }
 
         private fun loadResults(): Observable<Effect> =

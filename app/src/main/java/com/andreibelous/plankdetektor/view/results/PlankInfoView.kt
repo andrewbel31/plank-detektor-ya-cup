@@ -28,6 +28,6 @@ class PlankInfoView
 
     fun bind(attempt: StrAttempt) {
         title.text = attempt.date
-        duration.text = attempt.date
+        duration.text = attempt.duration
     }
 }

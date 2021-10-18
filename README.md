@@ -1,6 +1,8 @@
 # Приложение Plank Detektor для Ya Cup 2021
 
-## Как работает приложение?
+## Демо работы - https://youtu.be/QyP8zsf2Nu4
+
+### Как работает приложение?
 
 MVI + RxJava2 + TensorFlow
 
