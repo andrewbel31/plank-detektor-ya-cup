@@ -9,7 +9,6 @@ import com.andreibelous.plankdetektor.data.Person
 import com.andreibelous.plankdetektor.data.TorsoAndBodyDistance
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.gpu.GpuDelegate
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
@@ -21,8 +20,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 class MoveNet(
-    private val interpreter: Interpreter,
-    private var gpuDelegate: GpuDelegate?
+    private val interpreter: Interpreter
 ) : PoseDetector {
 
     private var cropRegion: RectF? = null
@@ -109,7 +107,6 @@ class MoveNet(
     override fun lastInferenceTimeNanos(): Long = lastInferenceTimeNanos
 
     override fun close() {
-        gpuDelegate?.close()
         interpreter.close()
         cropRegion = null
     }
@@ -298,10 +295,8 @@ class MoveNet(
 
         // allow specifying model type.
         fun create(context: Context): MoveNet {
-            val gpuDelegate = GpuDelegate()
             val options = Interpreter.Options().apply {
                 setNumThreads(CPU_NUM_THREADS)
-                addDelegate(gpuDelegate)
             }
             return MoveNet(
                 Interpreter(
@@ -309,8 +304,7 @@ class MoveNet(
                         context,
                         THUNDER_FILENAME
                     ), options
-                ),
-                gpuDelegate
+                )
             )
         }
     }
